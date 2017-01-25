@@ -17,25 +17,36 @@ Vagrant.configure("2") do |config|
   config.ssh.port = 2222
 
   config.vm.synced_folder ".", "/vagrant", disabled: true
-  config.vm.provision "shell", inline: "mkdir /home/ubuntu/shared"
-  config.vm.synced_folder "ubuntu_shared/", "/home/ubuntu/shared"
+  config.vm.synced_folder "shared/vagrant", "/vagrant", create: true,
+    id: "vagrant_share", mount_options: ["dmode=775,fmode=664"]
+  config.vm.synced_folder "shared/ubuntu", "/home/ubuntu/shared", create: true,
+    id: "ubuntu_shared", mount_options: ["dmode=775,fmode=664"]
 
-
-  key_file = "#{Dir.home}/Documents/projects/keys/vagrant_key.pub"
-  if File.file?(key_file)
-    ssh_pub_key = File.readlines(key_file).first.strip
-    config.vm.provision "shell", inline: "echo 'adding vagrant_key to authorized_keys...'"
-    config.vm.provision "shell", inline: "echo #{ssh_pub_key} >> /root/.ssh/authorized_keys"
-    config.vm.provision "shell", inline: "echo #{ssh_pub_key} >> /home/ubuntu/.ssh/authorized_keys", privileged: false
+  # install provided public key
+  pub_key_file = "../keys/vagrant_key.pub"
+  if File.file?(pub_key_file)
+    config.vm.provision "shell" do |s|
+      ssh_pub_key = File.readlines(pub_key_file).first.strip
+      s.inline = <<-SHELL
+        if grep -sq "#{ssh_pub_key}" /home/ubuntu/.ssh/authorized_keys; then
+          echo "SSH public key #{pub_key_file} already added."
+          exit 0;
+        else
+          echo "Adding SSH public key #{pub_key_file} to authorized keys"
+          echo #{ssh_pub_key} >> /home/ubuntu/.ssh/authorized_keys
+        fi
+        exit 0
+      SHELL
+    end
   end
-
+  # Install Docker
   config.vm.provision "shell", path: "setup/install-docker.sh", privileged: false
-
+  # Install Go
   config.vm.provision "shell", path: "setup/install-go.sh", args: "1.7.4", privileged: false
-
+  # Install RVM and Ruby
   config.vm.provision "shell", path: "setup/install-rvm.sh", args: "stable", privileged: false
   config.vm.provision "shell", path: "setup/install-ruby.sh", args: "2.1.2", privileged: false
-
+  # Install misc items
   config.vm.provision "shell", path: "setup/install-misc.sh", privileged: false
 
   # Disable automatic box update checking. If you disable this, then

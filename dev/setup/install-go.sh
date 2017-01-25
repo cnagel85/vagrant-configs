@@ -12,12 +12,14 @@ if [ ! -f $GOARCHIVE ]; then
 else
 	echo "Found file, extracting"
 	# Extract archive to proper location
-	tar -C /usr/local -xzf $GOARCHIVE
+	sudo tar -C /usr/local -xzf $GOARCHIVE
 	# Delete archive
 	rm $GOARCHIVE
 	# Set Paths
-	echo export PATH=$PATH:/usr/local/go/bin >> .profile
+	echo 'export PATH="$PATH:/usr/local/go/bin:/home/ubuntu/shared/go_projects/bin" # add go binaries to path' >> .profile
 	# Make go projects folder in home and set GOPATH in .profile
 	mkdir -p /home/ubuntu/shared/go_projects/src
-	echo export GOPATH=/home/ubuntu/shared/go_projects >> .profile
+	echo 'export GOPATH="/home/ubuntu/shared/go_projects" # set go workspace' >> .profile
+
+
 fi
